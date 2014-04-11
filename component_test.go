@@ -3,6 +3,7 @@ package metricz
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"runtime"
 	"testing"
@@ -25,50 +26,62 @@ func (hm BadHealthMonitor) Ok() bool {
 	return false
 }
 
-func TestIpAddressDefault(t *testing.T) {
+func TestComponentURL(t *testing.T) {
 	component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, component.IpAddress)
-	assert.NotEqual(t, "0.0.0.0", component.IpAddress)
-	assert.NotEqual(t, "127.0.0.1", component.IpAddress)
-}
 
-func TestStatusPortDefault(t *testing.T) {
-	component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
+	url := component.URL()
+
+	host, port, err := net.SplitHostPort(url.Host)
 	assert.NoError(t, err)
-	assert.NotEqual(t, uint32(0), component.StatusPort)
+
+	assert.Equal(t, url.Scheme, "http")
+
+	assert.NotEqual(t, host, "0.0.0.0")
+	assert.NotEqual(t, host, "127.0.0.1")
+
+	assert.NotEqual(t, port, "0")
 }
 
 func TestStatusCredentialsNil(t *testing.T) {
 	component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
 	assert.NoError(t, err)
-	credentials := component.StatusCredentials
-	assert.Equal(t, 2, len(credentials))
-	assert.NotEmpty(t, credentials[0])
-	assert.NotEmpty(t, credentials[1])
+
+	url := component.URL()
+
+	assert.NotEmpty(t, url.User.Username())
+
+	_, passwordPresent := url.User.Password()
+	assert.True(t, passwordPresent)
 }
 
 func TestStatusCredentialsDefault(t *testing.T) {
 	component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, []string{"", ""}, nil)
 	assert.NoError(t, err)
-	credentials := component.StatusCredentials
-	assert.Equal(t, 2, len(credentials))
-	assert.NotEmpty(t, credentials[0])
-	assert.NotEmpty(t, credentials[1])
+
+	url := component.URL()
+
+	assert.NotEmpty(t, url.User.Username())
+
+	_, passwordPresent := url.User.Password()
+	assert.True(t, passwordPresent)
 }
 
 func TestGoodHealthzEndpoint(t *testing.T) {
-	component := &Component{
-		Logger:            loggertesthelper.Logger(),
-		HealthMonitor:     GoodHealthMonitor{},
-		StatusPort:        7877,
-		Type:              "loggregator",
-		StatusCredentials: []string{"user", "pass"},
-	}
+	component, err := NewComponent(
+		loggertesthelper.Logger(),
+		"loggregator",
+		0,
+		GoodHealthMonitor{},
+		7877,
+		[]string{"user", "pass"},
+		[]instrumentation.Instrumentable{},
+	)
+	assert.NoError(t, err)
 
 	go component.StartMonitoringEndpoints()
 
-	req, err := http.NewRequest("GET", "http://localhost:7877/healthz", nil)
+	req, err := http.NewRequest("GET", component.URL().String()+"/healthz", nil)
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 
@@ -80,17 +93,20 @@ func TestGoodHealthzEndpoint(t *testing.T) {
 }
 
 func TestBadHealthzEndpoint(t *testing.T) {
-	component := &Component{
-		Logger:            loggertesthelper.Logger(),
-		HealthMonitor:     BadHealthMonitor{},
-		StatusPort:        9878,
-		Type:              "loggregator",
-		StatusCredentials: []string{"user", "pass"},
-	}
+	component, err := NewComponent(
+		loggertesthelper.Logger(),
+		"loggregator",
+		0,
+		BadHealthMonitor{},
+		9878,
+		[]string{"user", "pass"},
+		[]instrumentation.Instrumentable{},
+	)
+	assert.NoError(t, err)
 
 	go component.StartMonitoringEndpoints()
 
-	req, err := http.NewRequest("GET", "http://localhost:9878/healthz", nil)
+	req, err := http.NewRequest("GET", component.URL().String()+"/healthz", nil)
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 
@@ -101,13 +117,16 @@ func TestBadHealthzEndpoint(t *testing.T) {
 }
 
 func TestPanicWhenFailingToMonitorEndpoints(t *testing.T) {
-	component := &Component{
-		Logger:            loggertesthelper.Logger(),
-		HealthMonitor:     GoodHealthMonitor{},
-		StatusPort:        7879,
-		Type:              "loggregator",
-		StatusCredentials: []string{"user", "pass"},
-	}
+	component, err := NewComponent(
+		loggertesthelper.Logger(),
+		"loggregator",
+		0,
+		GoodHealthMonitor{},
+		7879,
+		[]string{"user", "pass"},
+		[]instrumentation.Instrumentable{},
+	)
+	assert.NoError(t, err)
 
 	finishChan := make(chan bool)
 
@@ -128,13 +147,16 @@ func TestPanicWhenFailingToMonitorEndpoints(t *testing.T) {
 }
 
 func TestStoppingServer(t *testing.T) {
-	component := &Component{
-		Logger:            loggertesthelper.Logger(),
-		HealthMonitor:     GoodHealthMonitor{},
-		StatusPort:        7885,
-		Type:              "loggregator",
-		StatusCredentials: []string{"user", "pass"},
-	}
+	component, err := NewComponent(
+		loggertesthelper.Logger(),
+		"loggregator",
+		0,
+		GoodHealthMonitor{},
+		7885,
+		[]string{"user", "pass"},
+		[]instrumentation.Instrumentable{},
+	)
+	assert.NoError(t, err)
 
 	go func() {
 		err := component.StartMonitoringEndpoints()
@@ -162,14 +184,14 @@ func (t testInstrumentable) Emit() instrumentation.Context {
 
 func TestVarzRequiresBasicAuth(t *testing.T) {
 	tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
-	component := &Component{
-		Logger:            loggertesthelper.Logger(),
-		HealthMonitor:     GoodHealthMonitor{},
-		StatusPort:        1234,
-		IpAddress:         "127.0.0.1",
-		Type:              "loggregator",
-		StatusCredentials: []string{"user", "pass"},
-		Instrumentables: []instrumentation.Instrumentable{
+	component, err := NewComponent(
+		loggertesthelper.Logger(),
+		"loggregator",
+		0,
+		GoodHealthMonitor{},
+		1234,
+		[]string{"user", "pass"},
+		[]instrumentation.Instrumentable{
 			testInstrumentable{
 				"agentListener",
 				[]instrumentation.Metric{
@@ -184,11 +206,16 @@ func TestVarzRequiresBasicAuth(t *testing.T) {
 				},
 			},
 		},
-	}
+	)
+	assert.NoError(t, err)
 
 	go component.StartMonitoringEndpoints()
 
-	req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
+	unauthenticatedURL := component.URL()
+	unauthenticatedURL.User = nil
+	unauthenticatedURL.Path = "/varz"
+
+	req, err := http.NewRequest("GET", unauthenticatedURL.String(), nil)
 	assert.NoError(t, err)
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
@@ -197,14 +224,14 @@ func TestVarzRequiresBasicAuth(t *testing.T) {
 
 func TestVarzEndpoint(t *testing.T) {
 	tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
-	component := &Component{
-		Logger:            loggertesthelper.Logger(),
-		HealthMonitor:     GoodHealthMonitor{},
-		StatusPort:        1234,
-		IpAddress:         "127.0.0.1",
-		Type:              "loggregator",
-		StatusCredentials: []string{"user", "pass"},
-		Instrumentables: []instrumentation.Instrumentable{
+	component, err := NewComponent(
+		loggertesthelper.Logger(),
+		"loggregator",
+		0,
+		GoodHealthMonitor{},
+		1234,
+		[]string{"user", "pass"},
+		[]instrumentation.Instrumentable{
 			testInstrumentable{
 				"agentListener",
 				[]instrumentation.Metric{
@@ -219,12 +246,12 @@ func TestVarzEndpoint(t *testing.T) {
 				},
 			},
 		},
-	}
+	)
+	assert.NoError(t, err)
 
 	go component.StartMonitoringEndpoints()
 
-	req, err := http.NewRequest("GET", "http://localhost:1234/varz", nil)
-	req.SetBasicAuth(component.StatusCredentials[0], component.StatusCredentials[1])
+	req, err := http.NewRequest("GET", component.URL().String()+"/varz", nil)
 	resp, err := http.DefaultClient.Do(req)
 	assert.NoError(t, err)
 

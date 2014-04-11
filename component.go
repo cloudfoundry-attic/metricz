@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/metricz/auth"
@@ -23,6 +24,9 @@ type Component struct {
 	StatusPort        uint32
 	StatusCredentials []string
 	Instrumentables   []instrumentation.Instrumentable
+
+	listener net.Listener
+	quitChan chan bool
 }
 
 const (
@@ -67,18 +71,39 @@ func NewComponent(logger *gosteno.Logger, componentType string, index uint, heat
 	}, nil
 }
 
-func (c Component) StartMonitoringEndpoints() error {
+func (c *Component) StartMonitoringEndpoints() error {
+	c.quitChan = make(chan bool, 1)
+
 	mux := http.NewServeMux()
 	auth := auth.NewBasicAuth("Realm", c.StatusCredentials)
 	mux.HandleFunc("/healthz", healthzHandlerFor(c))
 	mux.HandleFunc("/varz", auth.Wrap(varzHandlerFor(c)))
 
 	c.Debugf("Starting endpoints for component %s with collect at ip: %s, port: %d, username: %s, password %s", c.UUID, c.IpAddress, c.StatusPort, c.StatusCredentials[username], c.StatusCredentials[password])
-	err := http.ListenAndServe(fmt.Sprintf("%s:%d", c.IpAddress, c.StatusPort), mux)
-	return err
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", c.IpAddress, c.StatusPort))
+	if err != nil {
+		return err
+	}
+
+	c.listener = listener
+
+	server := &http.Server{Handler: mux}
+	err = server.Serve(listener)
+	select {
+	case <-c.quitChan:
+		return nil
+	default:
+		return err
+	}
 }
 
-func healthzHandlerFor(c Component) func(w http.ResponseWriter, req *http.Request) {
+func (c *Component) StopMonitoringEndpoints() {
+	c.quitChan <- true
+	c.listener.Close()
+}
+
+func healthzHandlerFor(c *Component) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
@@ -90,7 +115,7 @@ func healthzHandlerFor(c Component) func(w http.ResponseWriter, req *http.Reques
 	}
 }
 
-func varzHandlerFor(c Component) func(w http.ResponseWriter, req *http.Request) {
+func varzHandlerFor(c *Component) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 
 		message, err := instrumentation.NewVarzMessage(c.Type, c.Instrumentables)

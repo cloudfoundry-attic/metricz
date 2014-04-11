@@ -127,6 +127,30 @@ func TestPanicWhenFailingToMonitorEndpoints(t *testing.T) {
 	<-finishChan
 }
 
+func TestStoppingServer(t *testing.T) {
+	component := &Component{
+		Logger:            loggertesthelper.Logger(),
+		HealthMonitor:     GoodHealthMonitor{},
+		StatusPort:        7885,
+		Type:              "loggregator",
+		StatusCredentials: []string{"user", "pass"},
+	}
+
+	go func() {
+		err := component.StartMonitoringEndpoints()
+		assert.NoError(t, err)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+
+	component.StopMonitoringEndpoints()
+
+	go func() {
+		err := component.StartMonitoringEndpoints()
+		assert.NoError(t, err)
+	}()
+}
+
 type testInstrumentable struct {
 	name    string
 	metrics []instrumentation.Metric

@@ -31,6 +31,7 @@ var _ = Describe("CollectorRegistrar", func() {
 			5678,
 			[]string{"user", "pass"},
 			nil,
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 	})

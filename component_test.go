@@ -19,7 +19,7 @@ import (
 var _ = Describe("Component", func() {
 	It("component URL", func() {
 
-		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
+		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		url := component.URL()
@@ -36,7 +36,7 @@ var _ = Describe("Component", func() {
 	})
 	It("status credentials nil", func() {
 
-		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil)
+		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, nil, nil, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		url := component.URL()
@@ -48,7 +48,7 @@ var _ = Describe("Component", func() {
 	})
 	It("status credentials default", func() {
 
-		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, []string{"", ""}, nil)
+		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", 0, GoodHealthMonitor{}, 0, []string{"", ""}, nil, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		url := component.URL()
@@ -68,10 +68,12 @@ var _ = Describe("Component", func() {
 			7877,
 			[]string{"user", "pass"},
 			[]instrumentation.Instrumentable{},
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		go component.StartMonitoringEndpoints()
+		defer component.StopMonitoringEndpoints()
 
 		req, err := http.NewRequest("GET", component.URL().String()+"/healthz", nil)
 		resp, err := http.DefaultClient.Do(req)
@@ -80,6 +82,7 @@ var _ = Describe("Component", func() {
 		Ω(resp.StatusCode, 200)
 		Ω(resp.Header.Get("Content-Type"), "text/plain")
 		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(body)).Should(Equal("ok"))
 	})
@@ -93,10 +96,12 @@ var _ = Describe("Component", func() {
 			9878,
 			[]string{"user", "pass"},
 			[]instrumentation.Instrumentable{},
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		go component.StartMonitoringEndpoints()
+		defer component.StopMonitoringEndpoints()
 
 		req, err := http.NewRequest("GET", component.URL().String()+"/healthz", nil)
 		resp, err := http.DefaultClient.Do(req)
@@ -104,10 +109,11 @@ var _ = Describe("Component", func() {
 
 		Ω(resp.StatusCode).Should(Equal(200))
 		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(body)).Should(Equal("bad"))
 	})
-	It("panic when failing to monitor endpoints", func() {
+	It("error when failing to monitor endpoints", func() {
 
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
@@ -117,28 +123,30 @@ var _ = Describe("Component", func() {
 			7879,
 			[]string{"user", "pass"},
 			[]instrumentation.Instrumentable{},
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		finishChan := make(chan bool)
 
 		go func() {
+			defer GinkgoRecover()
 			err := component.StartMonitoringEndpoints()
 			Ω(err).ShouldNot(HaveOccurred())
 		}()
+		defer component.StopMonitoringEndpoints()
 		time.Sleep(50 * time.Millisecond)
 
 		go func() {
-
+			defer GinkgoRecover()
 			err := component.StartMonitoringEndpoints()
 			Ω(err).Should(HaveOccurred())
 			finishChan <- true
 		}()
 
-		<-finishChan
+		Eventually(finishChan).Should(Receive())
 	})
 	It("stopping server", func() {
-
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
 			"loggregator",
@@ -147,10 +155,12 @@ var _ = Describe("Component", func() {
 			7885,
 			[]string{"user", "pass"},
 			[]instrumentation.Instrumentable{},
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		go func() {
+			defer GinkgoRecover()
 			err := component.StartMonitoringEndpoints()
 			Ω(err).ShouldNot(HaveOccurred())
 		}()
@@ -160,9 +170,11 @@ var _ = Describe("Component", func() {
 		component.StopMonitoringEndpoints()
 
 		go func() {
+			defer GinkgoRecover()
 			err := component.StartMonitoringEndpoints()
 			Ω(err).ShouldNot(HaveOccurred())
 		}()
+		component.StopMonitoringEndpoints()
 	})
 	It("varz requires basic auth", func() {
 
@@ -189,10 +201,12 @@ var _ = Describe("Component", func() {
 					},
 				},
 			},
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		go component.StartMonitoringEndpoints()
+		defer component.StopMonitoringEndpoints()
 
 		unauthenticatedURL := component.URL()
 		unauthenticatedURL.User = nil
@@ -212,7 +226,7 @@ var _ = Describe("Component", func() {
 			"loggregator",
 			0,
 			GoodHealthMonitor{},
-			1234,
+			1235,
 			[]string{"user", "pass"},
 			[]instrumentation.Instrumentable{
 				testInstrumentable{
@@ -229,10 +243,12 @@ var _ = Describe("Component", func() {
 					},
 				},
 			},
+			nil,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
 		go component.StartMonitoringEndpoints()
+		defer component.StopMonitoringEndpoints()
 
 		req, err := http.NewRequest("GET", component.URL().String()+"/varz", nil)
 		resp, err := http.DefaultClient.Do(req)
@@ -244,6 +260,7 @@ var _ = Describe("Component", func() {
 		Ω(resp.StatusCode).Should(Equal(200))
 		Ω(resp.Header.Get("Content-Type")).Should(Equal("application/json"))
 		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		Ω(err).ShouldNot(HaveOccurred())
 
 		expected := map[string]interface{}{
@@ -300,6 +317,43 @@ var _ = Describe("Component", func() {
 		Ω(expected["numGoRoutines"]).Should(BeNumerically("==", actualMap["numGoRoutines"]))
 		Ω(actualMap["memoryStats"]).ShouldNot(BeNil())
 		Ω(actualMap["memoryStats"]).ShouldNot(BeEmpty())
+	})
+	It("additional handlers", func() {
+		component, err := NewComponent(
+			loggertesthelper.Logger(),
+			"loggregator",
+			0,
+			nil,
+			8989,
+			[]string{"user", "pass"},
+			[]instrumentation.Instrumentable{},
+			map[string]http.Handler{
+				"/route": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("a->b"))
+				})},
+		)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		go func() {
+			defer GinkgoRecover()
+			err := component.StartMonitoringEndpoints()
+			Ω(err).ShouldNot(HaveOccurred())
+		}()
+
+		defer component.StopMonitoringEndpoints()
+
+		req, err := http.NewRequest("GET", component.URL().String()+"/route", nil)
+		resp, err := http.DefaultClient.Do(req)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		Ω(resp.StatusCode, 200)
+		Ω(resp.Header.Get("Content-Type"), "text/plain")
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(string(body)).Should(Equal("a->b"))
 	})
 })
 

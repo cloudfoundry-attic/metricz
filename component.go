@@ -24,6 +24,7 @@ type Component struct {
 	statusPort        uint32
 	statusCredentials []string
 	instrumentables   []instrumentation.Instrumentable
+	extraHandlers     map[string]http.Handler
 
 	logger *gosteno.Logger
 
@@ -45,6 +46,7 @@ func NewComponent(
 	statusPort uint32,
 	statusCreds []string,
 	instrumentables []instrumentation.Instrumentable,
+	extraHandlers map[string]http.Handler,
 ) (Component, error) {
 	ip, err := localip.LocalIP()
 	if err != nil {
@@ -78,6 +80,7 @@ func NewComponent(
 		statusPort:        statusPort,
 		statusCredentials: statusCreds,
 		instrumentables:   instrumentables,
+		extraHandlers:     extraHandlers,
 
 		logger: logger,
 
@@ -91,6 +94,10 @@ func (c *Component) StartMonitoringEndpoints() error {
 	auth := auth.NewBasicAuth("Realm", c.statusCredentials)
 	mux.HandleFunc("/healthz", healthzHandlerFor(c))
 	mux.HandleFunc("/varz", auth.Wrap(varzHandlerFor(c)))
+
+	for route, handler := range c.extraHandlers {
+		mux.Handle(route, handler)
+	}
 
 	c.logger.Debugd(
 		map[string]interface{}{
@@ -139,6 +146,10 @@ func (c *Component) UUID() string {
 	return c.uuid
 }
 
+func (c *Component) Host() string {
+	return c.ipAddress
+}
+
 func (c Component) URL() *url.URL {
 	return &url.URL{
 		Scheme: "http",
@@ -161,7 +172,7 @@ func healthzHandlerFor(c *Component) func(w http.ResponseWriter, req *http.Reque
 
 func varzHandlerFor(c *Component) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		message, err := instrumentation.NewVarzMessage(c.name, c.instrumentables)
+		message, err := instrumentation.NewVarzMessage(c.name, c.ipAddress, c.instrumentables)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, err.Error())

@@ -1,7 +1,6 @@
 package instrumentation
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/localip"
 	"runtime"
 )
 
@@ -32,7 +31,7 @@ type VarzMessage struct {
 	Contexts      []Context         `json:"contexts"`
 }
 
-func NewVarzMessage(name string, instrumentables []Instrumentable) (*VarzMessage, error) {
+func NewVarzMessage(name string, ipAddress string, instrumentables []Instrumentable) (*VarzMessage, error) {
 	contexts := make([]Context, len(instrumentables))
 	for i, instrumentable := range instrumentables {
 		contexts[i] = instrumentable.Emit()
@@ -40,13 +39,8 @@ func NewVarzMessage(name string, instrumentables []Instrumentable) (*VarzMessage
 	memStats := new(runtime.MemStats)
 	runtime.ReadMemStats(memStats)
 
-	ip, err := localip.LocalIP()
-	if err != nil {
-		return &VarzMessage{}, err
-	}
-
 	tags := map[string]string{
-		"ip": ip,
+		"ip": ipAddress,
 	}
 
 	return &VarzMessage{name, runtime.NumCPU(), runtime.NumGoroutine(), mapMemStats(memStats), tags, contexts}, nil

@@ -13,7 +13,7 @@ go get github.com/dustin/goveralls
 go get code.google.com/p/go.tools/cmd/cover
 go get github.com/apcera/gnatsd
 go get github.com/onsi/ginkgo/ginkgo
-go get ./...
+go get -t -v ./...
 
 ginkgo -cover -v -r -failOnPending -randomizeAllSpecs -race
 

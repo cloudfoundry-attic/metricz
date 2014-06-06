@@ -3,8 +3,6 @@
 
 set -e -x
 
-export GOPATH=$PWD/Godeps/_workspace:$GOPATH
-
 FIRST_GOPATH=`echo $GOPATH | cut -d':' -f1`
 
 mkdir -p $FIRST_GOPATH/bin
@@ -14,7 +12,8 @@ go get -u github.com/coreos/etcd
 go get github.com/dustin/goveralls
 go get code.google.com/p/go.tools/cmd/cover
 go get github.com/apcera/gnatsd
-go install github.com/onsi/ginkgo/ginkgo
+go get github.com/onsi/ginkgo/ginkgo
+go get ./...
 
 ginkgo -cover -v -r -failOnPending -randomizeAllSpecs -race
 

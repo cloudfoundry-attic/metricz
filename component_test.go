@@ -18,11 +18,12 @@ import (
 
 var _ = Describe("Component", func() {
 	var uniquePortForTest uint
+
 	BeforeEach(func() {
 		uniquePortForTest = uint(CurrentGinkgoTestDescription().LineNumber + 10000)
 	})
-	It("component URL", func() {
 
+	It("component URL", func() {
 		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", uniquePortForTest, GoodHealthMonitor{}, 0, nil, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -38,8 +39,8 @@ var _ = Describe("Component", func() {
 
 		Ω(port).ShouldNot(Equal("0"))
 	})
-	It("status credentials nil", func() {
 
+	It("status credentials nil", func() {
 		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", uniquePortForTest, GoodHealthMonitor{}, 0, nil, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -50,8 +51,8 @@ var _ = Describe("Component", func() {
 		_, passwordPresent := url.User.Password()
 		Ω(passwordPresent).Should(BeTrue())
 	})
-	It("status credentials default", func() {
 
+	It("status credentials default", func() {
 		component, err := NewComponent(loggertesthelper.Logger(), "loggregator", uniquePortForTest, GoodHealthMonitor{}, 0, []string{"", ""}, nil)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -62,6 +63,7 @@ var _ = Describe("Component", func() {
 		_, passwordPresent := url.User.Password()
 		Ω(passwordPresent).Should(BeTrue())
 	})
+
 	It("good healthz endpoint", func() {
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
@@ -86,8 +88,8 @@ var _ = Describe("Component", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(body)).Should(Equal("ok"))
 	})
-	It("bad healthz endpoint", func() {
 
+	It("bad healthz endpoint", func() {
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
 			"loggregator",
@@ -110,8 +112,8 @@ var _ = Describe("Component", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(string(body)).Should(Equal("bad"))
 	})
-	It("panic when failing to monitor endpoints", func() {
 
+	It("panic when failing to monitor endpoints", func() {
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
 			"loggregator",
@@ -142,8 +144,8 @@ var _ = Describe("Component", func() {
 
 		<-finishChan
 	})
-	It("stopping server", func() {
 
+	It("stopping server", func() {
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
 			"loggregator",
@@ -171,8 +173,8 @@ var _ = Describe("Component", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		}()
 	})
-	It("varz requires basic auth", func() {
 
+	It("varz requires basic auth", func() {
 		tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
 		component, err := NewComponent(
 			loggertesthelper.Logger(),
@@ -211,8 +213,8 @@ var _ = Describe("Component", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(resp.StatusCode).Should(Equal(401))
 	})
-	It("varz endpoint", func() {
 
+	It("varz endpoint", func() {
 		tags := map[string]interface{}{"tagName1": "tagValue1", "tagName2": "tagValue2"}
 		component, err := NewComponent(
 			loggertesthelper.Logger(),

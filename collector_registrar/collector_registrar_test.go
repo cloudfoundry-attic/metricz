@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/cloudfoundry/yagnats"
+	"github.com/apcera/nats"
 	"github.com/cloudfoundry/yagnats/fakeyagnats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,12 +15,12 @@ import (
 )
 
 var _ = Describe("CollectorRegistrar", func() {
-	var fakenats *fakeyagnats.FakeYagnats
+	var fakenats *fakeyagnats.FakeApceraWrapper
 	var registrar CollectorRegistrar
 	var component metricz.Component
 
 	BeforeEach(func() {
-		fakenats = fakeyagnats.New()
+		fakenats = fakeyagnats.NewApceraClientWrapper()
 		registrar = New(fakenats)
 
 		var err error
@@ -46,9 +46,9 @@ var _ = Describe("CollectorRegistrar", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 
 		Ω(fakenats.PublishedMessages(AnnounceComponentMessageSubject)).Should(ContainElement(
-			yagnats.Message{
+			&nats.Msg{
 				Subject: AnnounceComponentMessageSubject,
-				Payload: expectedJson,
+				Data:    expectedJson,
 			},
 		))
 	})
@@ -70,9 +70,9 @@ var _ = Describe("CollectorRegistrar", func() {
 			)
 
 			Ω(fakenats.PublishedMessages("reply-subject")).Should(ContainElement(
-				yagnats.Message{
+				&nats.Msg{
 					Subject: "reply-subject",
-					Payload: expectedJson,
+					Data:    expectedJson,
 				},
 			))
 		})
@@ -82,7 +82,7 @@ var _ = Describe("CollectorRegistrar", func() {
 		disaster := errors.New("oh no!")
 
 		BeforeEach(func() {
-			fakenats.WhenPublishing(AnnounceComponentMessageSubject, func(*yagnats.Message) error {
+			fakenats.WhenPublishing(AnnounceComponentMessageSubject, func(*nats.Msg) error {
 				return disaster
 			})
 		})
@@ -97,7 +97,7 @@ var _ = Describe("CollectorRegistrar", func() {
 		disaster := errors.New("oh no!")
 
 		BeforeEach(func() {
-			fakenats.WhenSubscribing(DiscoverComponentMessageSubject, func(yagnats.Callback) error {
+			fakenats.WhenSubscribing(DiscoverComponentMessageSubject, func(nats.MsgHandler) error {
 				return disaster
 			})
 		})

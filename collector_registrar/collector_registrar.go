@@ -3,6 +3,7 @@ package collector_registrar
 import (
 	"encoding/json"
 
+	"github.com/apcera/nats"
 	"github.com/cloudfoundry-incubator/metricz"
 	"github.com/cloudfoundry/yagnats"
 )
@@ -12,10 +13,10 @@ type CollectorRegistrar interface {
 }
 
 type natsCollectorRegistrar struct {
-	natsClient yagnats.NATSClient
+	natsClient yagnats.ApceraWrapperNATSClient
 }
 
-func New(natsClient yagnats.NATSClient) CollectorRegistrar {
+func New(natsClient yagnats.ApceraWrapperNATSClient) CollectorRegistrar {
 	return &natsCollectorRegistrar{
 		natsClient: natsClient,
 	}
@@ -31,8 +32,8 @@ func (registrar *natsCollectorRegistrar) RegisterWithCollector(component metricz
 
 	_, err = registrar.natsClient.Subscribe(
 		DiscoverComponentMessageSubject,
-		func(msg *yagnats.Message) {
-			registrar.natsClient.Publish(msg.ReplyTo, messageJson)
+		func(msg *nats.Msg) {
+			registrar.natsClient.Publish(msg.Reply, messageJson)
 		},
 	)
 	if err != nil {

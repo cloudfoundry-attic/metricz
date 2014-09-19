@@ -8,12 +8,21 @@ FIRST_GOPATH=`echo $GOPATH | cut -d':' -f1`
 mkdir -p $FIRST_GOPATH/bin
 export PATH=$FIRST_GOPATH/bin:$PATH
 
-go get -u github.com/coreos/etcd
+go get -t -v ./...
+
+## Lock down etcd since latest code is very broken
+## See: https://github.com/coreos/etcd/issues/986
+mkdir -p $FIRST_GOPATH/src/github.com/coreos/etcd
+pushd $FIRST_GOPATH/src/github.com/coreos/etcd
+  git clone https://github.com/coreos/etcd.git . || true
+  git checkout 0a2384bf4daec35a814244dc4d885e14f18b5ef1
+  go install .
+popd
+
 go get github.com/dustin/goveralls
 go get code.google.com/p/go.tools/cmd/cover
 go get github.com/apcera/gnatsd
 go get github.com/onsi/ginkgo/ginkgo
-go get -t -v ./...
 
 ginkgo -cover -v -r -failOnPending -randomizeAllSpecs -race
 
@@ -21,7 +30,7 @@ ginkgo -cover -v -r -failOnPending -randomizeAllSpecs -race
 set +x
 
 if [ -n "$COVERALLS_TOKEN" ]; then
-  profiles=$(find . -name '*.coverprofile' | grep -v fake | grep -v Godeps | grep -v integration.coverprofile)
+  profiles=$(find . -name '*.coverprofile' | grep -v fake | grep -v integration.coverprofile)
 
   echo mode: set > all.coverprofile
   cat $profiles | grep -v mode: >> all.coverprofile

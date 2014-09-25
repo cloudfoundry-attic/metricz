@@ -13,10 +13,10 @@ type CollectorRegistrar interface {
 }
 
 type natsCollectorRegistrar struct {
-	natsClient yagnats.ApceraWrapperNATSClient
+	natsClient yagnats.NATSConn
 }
 
-func New(natsClient yagnats.ApceraWrapperNATSClient) CollectorRegistrar {
+func New(natsClient yagnats.NATSConn) CollectorRegistrar {
 	return &natsCollectorRegistrar{
 		natsClient: natsClient,
 	}

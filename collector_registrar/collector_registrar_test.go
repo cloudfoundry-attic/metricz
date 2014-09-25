@@ -15,12 +15,12 @@ import (
 )
 
 var _ = Describe("CollectorRegistrar", func() {
-	var fakenats *fakeyagnats.FakeApceraWrapper
+	var fakenats *fakeyagnats.FakeNATSConn
 	var registrar CollectorRegistrar
 	var component metricz.Component
 
 	BeforeEach(func() {
-		fakenats = fakeyagnats.NewApceraClientWrapper()
+		fakenats = fakeyagnats.Connect()
 		registrar = New(fakenats)
 
 		var err error
@@ -63,7 +63,7 @@ var _ = Describe("CollectorRegistrar", func() {
 			expectedJson, err := json.Marshal(expected)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			fakenats.PublishWithReplyTo(
+			fakenats.PublishRequest(
 				DiscoverComponentMessageSubject,
 				"reply-subject",
 				nil,

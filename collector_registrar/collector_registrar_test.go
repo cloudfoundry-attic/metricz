@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/apcera/nats"
-	"github.com/cloudfoundry/yagnats/fakeyagnats"
+	"github.com/cloudfoundry/gunk/diegonats"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager"
@@ -15,12 +15,12 @@ import (
 )
 
 var _ = Describe("CollectorRegistrar", func() {
-	var fakenats *fakeyagnats.FakeNATSConn
+	var fakenats *diegonats.FakeNATSClient
 	var registrar CollectorRegistrar
 	var component metricz.Component
 
 	BeforeEach(func() {
-		fakenats = fakeyagnats.Connect()
+		fakenats = diegonats.NewFakeClient()
 		registrar = New(fakenats)
 
 		var err error

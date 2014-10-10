@@ -5,7 +5,7 @@ import (
 
 	"github.com/apcera/nats"
 	"github.com/cloudfoundry-incubator/metricz"
-	"github.com/cloudfoundry/yagnats"
+	"github.com/cloudfoundry/gunk/diegonats"
 )
 
 type CollectorRegistrar interface {
@@ -13,10 +13,10 @@ type CollectorRegistrar interface {
 }
 
 type natsCollectorRegistrar struct {
-	natsClient yagnats.NATSConn
+	natsClient diegonats.NATSClient
 }
 
-func New(natsClient yagnats.NATSConn) CollectorRegistrar {
+func New(natsClient diegonats.NATSClient) CollectorRegistrar {
 	return &natsCollectorRegistrar{
 		natsClient: natsClient,
 	}

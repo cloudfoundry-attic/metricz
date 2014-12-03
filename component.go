@@ -11,8 +11,8 @@ import (
 
 	"github.com/cloudfoundry-incubator/metricz/auth"
 	"github.com/cloudfoundry-incubator/metricz/instrumentation"
-	"github.com/cloudfoundry-incubator/metricz/localip"
 	"github.com/pivotal-golang/lager"
+	"github.com/pivotal-golang/localip"
 )
 
 type Component struct {
@@ -21,7 +21,7 @@ type Component struct {
 	healthMonitor     HealthMonitor
 	index             uint
 	uuid              string
-	statusPort        uint32
+	statusPort        uint16
 	statusCredentials []string
 	instrumentables   []instrumentation.Instrumentable
 
@@ -42,7 +42,7 @@ func NewComponent(
 	name string,
 	index uint,
 	heathMonitor HealthMonitor,
-	statusPort uint32,
+	statusPort uint16,
 	statusCreds []string,
 	instrumentables []instrumentation.Instrumentable,
 ) (Component, error) {

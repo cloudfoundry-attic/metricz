@@ -1,8 +1,9 @@
 package instrumentation
 
 import (
-	"github.com/cloudfoundry/loggregatorlib/cfcomponent/localip"
 	"runtime"
+
+	"github.com/pivotal-golang/localip"
 )
 
 type varzMemoryStats struct {

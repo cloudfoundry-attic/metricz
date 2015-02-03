@@ -210,6 +210,15 @@ var _ = Describe("Component", func() {
 
 		go component.StartMonitoringEndpoints()
 
+		Eventually(func() error {
+			conn, err := net.Dial("tcp", component.URL().Host)
+			if err == nil {
+				conn.Close()
+			}
+
+			return err
+		}).ShouldNot(HaveOccurred())
+
 		req, err := http.NewRequest("GET", unauthenticatedURL.String(), nil)
 		Ω(err).ShouldNot(HaveOccurred())
 		resp, err := http.DefaultClient.Do(req)

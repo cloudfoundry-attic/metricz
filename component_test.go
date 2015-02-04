@@ -211,7 +211,7 @@ var _ = Describe("Component", func() {
 		go component.StartMonitoringEndpoints()
 
 		Eventually(func() error {
-			conn, err := net.Dial("tcp", component.URL().Host)
+			conn, err := net.Dial("tcp", unauthenticatedURL.Host)
 			if err == nil {
 				conn.Close()
 			}

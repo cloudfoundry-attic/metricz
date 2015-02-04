@@ -138,7 +138,7 @@ func (c *Component) UUID() string {
 	return c.uuid
 }
 
-func (c Component) URL() *url.URL {
+func (c *Component) URL() *url.URL {
 	return &url.URL{
 		Scheme: "http",
 		Host:   net.JoinHostPort(c.ipAddress, fmt.Sprintf("%d", c.statusPort)),

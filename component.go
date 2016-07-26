@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/localip"
 	"github.com/cloudfoundry-incubator/metricz/auth"
 	"github.com/cloudfoundry-incubator/metricz/instrumentation"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/localip"
 )
 
 type Component struct {

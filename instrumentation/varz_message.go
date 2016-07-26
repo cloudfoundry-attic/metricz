@@ -3,7 +3,7 @@ package instrumentation
 import (
 	"runtime"
 
-	"github.com/pivotal-golang/localip"
+	"code.cloudfoundry.org/localip"
 )
 
 type varzMemoryStats struct {

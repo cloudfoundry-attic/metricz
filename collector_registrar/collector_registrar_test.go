@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/apcera/nats"
+	"github.com/cloudfoundry-incubator/metricz"
 	"github.com/cloudfoundry/gunk/diegonats"
+
+	. "github.com/cloudfoundry-incubator/metricz/collector_registrar"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager"
-
-	"github.com/cloudfoundry-incubator/metricz"
-	. "github.com/cloudfoundry-incubator/metricz/collector_registrar"
 )
 
 var _ = Describe("CollectorRegistrar", func() {

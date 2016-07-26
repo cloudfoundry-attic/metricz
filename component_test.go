@@ -9,11 +9,12 @@ import (
 
 	"time"
 
-	. "github.com/cloudfoundry-incubator/metricz"
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-incubator/metricz/instrumentation"
+
+	. "github.com/cloudfoundry-incubator/metricz"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager"
 )
 
 var _ = Describe("Component", func() {
